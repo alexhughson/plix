@@ -10,6 +10,8 @@ import json
 import re
 import os
 import hashlib
+from src.openai import call_openai_api, get_text_response, CACHE_DIR
+from src.prompts import GET_COMMAND_PROMPT
 
 from dotenv import load_dotenv
 
@@ -18,62 +20,7 @@ try:
 except:
     print("Couldn't load .env file, but just goin' for it anyway")
 
-CACHE_DIR = '.openai_cache'
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
-OPENAI_DOMAIN = "https://api.openai.com/v1/"
-
-def generate_hash(text):
-    return hashlib.md5(text.encode('utf-8')).hexdigest()
-
-def check_openai_cache(cache_string):
-    cache_key = generate_hash(cache_string)
-
-    cache_path = f"{CACHE_DIR}/{cache_key}.json"
-    if os.path.exists(cache_path):
-        with open(cache_path, "r") as cache_file:
-            cache_data = json.load(cache_file)
-            return cache_data
-    return None
-
-def set_openai_cache(cache_string, cache_data):
-    cache_key = generate_hash(cache_string)
-    cache_path = f"{CACHE_DIR}/{cache_key}.json"
-    with open(cache_path, "w") as cache_file:
-        json.dump(cache_data, cache_file, indent=2)
-
-def call_openai_api(question):
-    cache_key = question
-
-    cache_result = check_openai_cache(cache_key)
-    if cache_result:
-        return cache_result.get('response')
-
-    headers = {
-        "Authorization": f"Bearer {OPENAI_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    body={
-        "model": "gpt-4",
-        "messages": [{
-            "role": "user",
-            "content": question
-        }
-        ]
-    }
-    response = requests.post(OPENAI_DOMAIN + "chat/completions", json=body, headers=headers)
-
-    return_data = {
-        "question": question,
-        "request": body,
-        "response": response.json()
-    }
-    set_openai_cache(cache_key, return_data)
-    return return_data.get('response')
-
-
-def get_text_response(openai_response):
-    return openai_response['choices'][0]['message']['content']
 
 def get_command_explanation(request, command):
     question = f"Explain what the command '{command}' does."
@@ -108,15 +55,7 @@ def find_json_object(text):
         return None
 
 def get_command(prompt_question):
-    PROMPT = f"""
-    Acting as a unix sysadmin, please help this user with their task.  
-    
-    They have asked: '{prompt_question}'
-
-    Please express the response inside of a JSON object, with the key 'response' and the value being the command you would run to help the user.
-
-    Only include the command, not the explanation.  An explanation can be included in the 'explanation' key of the json object if needed
-    """
+    PROMPT = GET_COMMAND_PROMPT.format(prompt_question=prompt_question)
     response = call_openai_api(PROMPT)
     response_output = get_text_response(response)
     json_object = find_json_object(response_output)
