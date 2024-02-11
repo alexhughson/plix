@@ -10,7 +10,7 @@ import json
 import re
 import os
 import hashlib
-from src.openai import call_openai_api, get_text_response, CACHE_DIR
+from src.openai import call_openai_api, get_text_response, get_command, CACHE_DIR
 from src.prompts import GET_COMMAND_PROMPT
 
 from dotenv import load_dotenv
@@ -41,30 +41,7 @@ def get_keystroke():
         # Restore the terminal settings
         termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
 
-def find_json_object(text):
-    try:
-        json_object = json.loads(text)
-        return json_object
-    except:
-        pass
-    json_match = re.search(r'\{.*?\}', text)
-    if json_match:
-        json_object = json.loads(json_match.group())
-        return json_object
-    else:
-        return None
 
-def get_command(prompt_question):
-    PROMPT = GET_COMMAND_PROMPT.format(prompt_question=prompt_question)
-    response = call_openai_api(PROMPT)
-    response_output = get_text_response(response)
-    json_object = find_json_object(response_output)
-    if json_object:
-        return json_object['response']
-    else:
-        print("We were unable to generate a response.  Please try again.")
-        print(json.dumps(response, indent=4))
-        return "FAILED"
 
 def run_command(command):
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
@@ -92,7 +69,7 @@ def main(args):
     args_string = ' '.join(arg for arg in args if not arg.startswith('--'))
 
 
-    proffered_command = get_command(args_string)
+    proffered_command = get_command(args_string).command
     while True:
         print(f"{proffered_command} ([R]un/[C]ancel/[E]xplain/[A]lter)")
         keystroke = get_keystroke()

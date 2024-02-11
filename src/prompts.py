@@ -3,9 +3,11 @@ Acting as a unix sysadmin, please help this user with their task.
 
 They have asked: '{prompt_question}'
 
-Please express the response inside of a JSON object, with the key 'response' and the value being the command you would run to help the user.
+Please express the response inside of a JSON object, with the key 'command' and the value being the command you would run to help the user.
 
-Only include the command, not the explanation.  An explanation can be included in the 'explanation' key of the json object if needed
+If the command is destructive, add a "destructive" key to the json object and mark it as true.  If the command is not destructive, set the "destructive" key to false.
+
+An explanation can be included in the 'explanation' key of the json object if needed
 """
 
 EXPLAIN_COMMAND_PROMPT = """
