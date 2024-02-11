@@ -9,3 +9,5 @@ requirements:
 test: requirements
 	venv/bin/python3 -m pytest
 
+clear_cache:
+	rm -rf ./.openai_cache/*
